@@ -34,7 +34,7 @@ harness's checks.
 - Every program as compiled, and through this Mac's driver: `./build/sctest --shaders --out DIR`
 
 ## Verify
-- Everything: `tools/verify.sh` (~4 min: reserved words, reversed smoothsteps, glslc, the
+- Everything: `tools/verify.sh` (~40 s: reserved words, reversed smoothsteps, glslc, the
   pin, a fresh universal build, both bundles through lipo/plist/codesign/oxbow probe +
   selftest, the programs through the driver, every check, the picture checks again on
   Apple's software renderer, `--offline`, the `--pipe` format, the negative controls, the

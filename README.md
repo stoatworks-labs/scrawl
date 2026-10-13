@@ -152,9 +152,9 @@ What's measured, on this Mac:
 | dead controls | **27** parameters swept, all live: every one but the Audio buffer, the buttons and the About text |
 
 Render cost (`sctest --bench`, busy: every kind at full, a Hit every ten frames, Passes 3,
-up to 50,000 capsules a drawing, on a machine shared with other jobs): a new drawing
-**2.7-3.1 ms at 720p, 2.7 at 1080p, 4.0 at 4K**; a held one 0.2, 0.3 and 0.9 ms. On twos a
-new drawing is one frame in five.
+up to 50,000 capsules a drawing, four runs on a machine shared with other jobs): a new
+drawing **2.7-3.5 ms at 720p and 1080p, 4.0-4.2 at 4K**; a held one 0.2-0.5 ms, and
+0.9-1.1 at 4K. On twos a new drawing is one frame in five.
 
 What **isn't** verified yet:
 
@@ -207,7 +207,7 @@ The offline harness renders the real plugin classes headlessly:
     tools/mutate.sh                   one character of the shaders and C++, changed
     ./build/sctest --bench            720p through 4K
     python3 tools/sweep.py            no control is silently dead
-    tools/verify.sh                   all of it, in about four minutes
+    tools/verify.sh                   all of it, in under a minute
 
 Filming uses the fleet's frame format and cue sheets:
 
