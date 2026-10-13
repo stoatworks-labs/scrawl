@@ -3,8 +3,8 @@
 # Every shader through glslc, the one shader check that needs no GL driver.
 # Called by tools/verify.sh AND by CI, so the two cannot drift: a runner with
 # no accelerated GL cannot compile a shader through a driver, and this is how
-# CI covers the shaders instead (jptest --offline covers the physics; on a Mac,
-# `jptest --shaders` compiles the same programs through the real driver).
+# CI covers the shaders instead (sctest --offline covers the analyser, the transport and the hand; on a Mac,
+# `sctest --shaders` compiles the same programs through the real driver).
 #
 #     tools/glslc.sh          exit 0 when every shader compiles, or glslc is absent
 #     GLSLC_REQUIRED=1 tools/glslc.sh   ...and a missing glslc is a failure (CI)

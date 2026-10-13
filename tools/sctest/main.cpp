@@ -342,7 +342,7 @@ GLuint makeTexture( int width, int height, const float* pixels )
 //---------------------------------------------------------------------------
 constexpr int kDemoPeriod = 28;
 
-void demoSpectrum( int frame, float out[ audio::kBins ], int period = kDemoPeriod, bool bed = true )
+void demoSpectrum( int frame, float out[ audio::kBins ], int period = kDemoPeriod, bool bed = true, bool ghost = false )
 {
 	for( int i = 0; i < audio::kBins; ++i )
 		out[ i ] = bed ? 0.0004f : 0.0f;
@@ -356,11 +356,145 @@ void demoSpectrum( int frame, float out[ audio::kBins ], int period = kDemoPerio
 	const float hat         = static_cast< float >( std::exp( -sinceHat / 0.04 ) );
 	out[ 0 ] += 0.5f * kick;
 	out[ 1 ] += 0.35f * kick;
+	//The ghost band adds a soft kick two thirds of the way to the next one: a
+	//note only a sensitive detector hears (Sensitivity's sweep context).
+	if( ghost )
+	{
+		const int at = ( 2 * period ) / 3;
+		if( frame % period >= at )
+		{
+			const float g = 0.05f * static_cast< float >( std::exp( -static_cast< double >( frame % period - at ) / kFps / 0.12 ) );
+			out[ 0 ] += 0.5f * g;
+			out[ 1 ] += 0.35f * g;
+		}
+	}
 	for( int i = 3; i <= 12; ++i )
 		out[ i ] += 0.06f * snare;
 	for( int i = 18; i <= 50; ++i )
 		out[ i ] += 0.012f * hat;
 }
+
+//---------------------------------------------------------------------------
+// Real music: a WAV through a stand-in for Resolume's FFT.
+//
+// Nobody has measured what Resolume puts in its 64 bins (Audio.h), so this is
+// an ASSUMPTION, said here and in the README: a 2048-sample Hann window ending
+// at the frame's time, mono, its magnitude spectrum folded into 64 equal bins
+// from 0 to Nyquist (each the mean of sixteen), scaled so a full-scale sine's
+// bin reads about 1. It is what makes Resolume's own AV loops usable as test
+// music; it is not Resolume.
+//---------------------------------------------------------------------------
+struct Wav
+{
+	std::vector< float > mono;
+	int rate = 44100;
+
+	bool Load( const std::string& path, std::string& error )
+	{
+		std::ifstream in( path, std::ios::binary );
+		if( !in )
+		{
+			error = "cannot open " + path;
+			return false;
+		}
+		std::vector< unsigned char > b( ( std::istreambuf_iterator< char >( in ) ), std::istreambuf_iterator< char >() );
+		auto u32 = [ & ]( size_t at ) { return static_cast< uint32_t >( b[ at ] | b[ at + 1 ] << 8 | b[ at + 2 ] << 16 | b[ at + 3 ] << 24 ); };
+		auto u16 = [ & ]( size_t at ) { return static_cast< uint16_t >( b[ at ] | b[ at + 1 ] << 8 ); };
+		if( b.size() < 12 || std::memcmp( b.data(), "RIFF", 4 ) != 0 || std::memcmp( b.data() + 8, "WAVE", 4 ) != 0 )
+		{
+			error = path + " is not a WAV file";
+			return false;
+		}
+		int channels = 0, bits = 0, format = 0;
+		for( size_t at = 12; at + 8 <= b.size(); )
+		{
+			const uint32_t size = u32( at + 4 );
+			if( std::memcmp( b.data() + at, "fmt ", 4 ) == 0 && at + 24 <= b.size() )
+			{
+				format   = u16( at + 8 );
+				channels = u16( at + 10 );
+				rate     = static_cast< int >( u32( at + 12 ) );
+				bits     = u16( at + 22 );
+			}
+			else if( std::memcmp( b.data() + at, "data", 4 ) == 0 )
+			{
+				if( format != 1 || bits != 16 || channels < 1 )
+				{
+					error = path + ": only 16-bit PCM is read";
+					return false;
+				}
+				const size_t frames = std::min< size_t >( size, b.size() - at - 8 ) / ( 2u * static_cast< size_t >( channels ) );
+				mono.resize( frames );
+				for( size_t i = 0; i < frames; ++i )
+				{
+					double sum = 0.0;
+					for( int c = 0; c < channels; ++c )
+						sum += static_cast< int16_t >( u16( at + 8 + ( i * channels + c ) * 2 ) ) / 32768.0;
+					mono[ i ] = static_cast< float >( sum / channels );
+				}
+				return true;
+			}
+			at += 8 + size + ( size & 1u );
+		}
+		error = path + " has no data chunk";
+		return false;
+	}
+
+	/// The spectrum at `seconds`, looping the file.
+	void Spectrum( double seconds, float out[ audio::kBins ] ) const
+	{
+		constexpr int N = 2048;
+		std::vector< double > re( N ), im( N, 0.0 );
+		const long end = static_cast< long >( std::llround( seconds * rate ) );
+		const long len = static_cast< long >( mono.size() );
+		for( int i = 0; i < N; ++i )
+		{
+			long at = end - N + i;
+			at      = ( ( at % len ) + len ) % len;
+			re[ static_cast< size_t >( i ) ] = mono[ static_cast< size_t >( at ) ] * ( 0.5 - 0.5 * std::cos( 2.0 * kPi * i / ( N - 1 ) ) );
+		}
+		//Radix-2, in place.
+		for( int i = 1, j = 0; i < N; ++i )
+		{
+			int bit = N >> 1;
+			for( ; j & bit; bit >>= 1 )
+				j ^= bit;
+			j ^= bit;
+			if( i < j )
+			{
+				std::swap( re[ static_cast< size_t >( i ) ], re[ static_cast< size_t >( j ) ] );
+				std::swap( im[ static_cast< size_t >( i ) ], im[ static_cast< size_t >( j ) ] );
+			}
+		}
+		for( int size = 2; size <= N; size <<= 1 )
+		{
+			const double angle = -2.0 * kPi / size;
+			for( int start = 0; start < N; start += size )
+				for( int k = 0; k < size / 2; ++k )
+				{
+					const double c = std::cos( angle * k ), s = std::sin( angle * k );
+					const size_t a = static_cast< size_t >( start + k ), bb = static_cast< size_t >( start + k + size / 2 );
+					const double tr = re[ bb ] * c - im[ bb ] * s, ti = re[ bb ] * s + im[ bb ] * c;
+					re[ bb ] = re[ a ] - tr;
+					im[ bb ] = im[ a ] - ti;
+					re[ a ] += tr;
+					im[ a ] += ti;
+				}
+		}
+		//A full-scale sine through a Hann window peaks at N/4 in its bin.
+		const int per = ( N / 2 ) / audio::kBins;
+		for( int bin = 0; bin < audio::kBins; ++bin )
+		{
+			double sum = 0.0;
+			for( int k = 0; k < per; ++k )
+			{
+				const size_t i = static_cast< size_t >( bin * per + k );
+				sum += std::sqrt( re[ i ] * re[ i ] + im[ i ] * im[ i ] );
+			}
+			out[ bin ] = static_cast< float >( sum / per / ( N / 4.0 ) );
+		}
+	}
+};
 
 bool isKickFrame( int f, int period = kDemoPeriod )
 {
@@ -391,6 +525,8 @@ struct Rig
 	GLuint sourceTexture = 0, outputTexture = 0, outputFBO = 0;
 	int frame            = 0;
 	bool demo            = false;
+	bool ghost           = false;
+	const Wav* wav       = nullptr;
 	std::function< void( int, float* ) > spectrum;
 
 	ProcessOpenGLStruct process    = {};
@@ -497,8 +633,10 @@ struct Rig
 			float bins[ audio::kBins ] = {};
 			if( spectrum )
 				spectrum( frame, bins );
+			else if( wav != nullptr )
+				wav->Spectrum( frame / kFps, bins );
 			else if( demo )
-				demoSpectrum( frame, bins );
+				demoSpectrum( frame, bins, kDemoPeriod, true, ghost );
 			feed( plugin, bins );
 			plugin.SetTime( static_cast< double >( frame ) / kFps );
 			++frame;
@@ -636,10 +774,12 @@ bool applySetting( ScrawlPlugin& plugin, const std::string& assignment, std::str
 
 /// --pipe and --film. Raw RGBA, top row first, on the synthetic 60 fps clock.
 int runPipe( bool effect, int width, int height, const std::string& scriptPath, int filmFrames,
-             const std::vector< std::string >& settings, bool demo )
+             const std::vector< std::string >& settings, bool demo, bool ghost, const Wav* wav )
 {
 	Rig rig( effect );
-	rig.demo = demo;
+	rig.demo  = demo;
+	rig.ghost = ghost;
+	rig.wav   = wav;
 	if( !rig.Init( width, height ) )
 		return 1;
 	for( const std::string& setting : settings )
@@ -753,6 +893,7 @@ struct Perturb
 	bool defaultsShifted = false;///< --defaults: expect On Ones
 	bool determinismSeeds = false;///< --determinism: expect seeds 3 and 4 to agree
 	bool wrongBands     = false;///< --bands: expect rings on the snare
+	bool offGrid        = false;///< --music: every onset half a sixteenth late
 };
 
 using CheckFn = int ( * )( const Perturb& );
@@ -1117,6 +1258,79 @@ int runHand( const Perturb& perturb )
 				hi = std::max( hi, s.r0 / half );
 			}
 		Check( lo >= 0.85f - 1e-4f && hi <= 1.15f + 1e-4f && hi - lo > 0.15f, fmt( "Wobble 1: the pressure wanders between %.3f and %.3f of full (law: within 0.85-1.15)", lo, hi ) );
+	}
+	return Verdict();
+}
+
+//===========================================================================
+// --music: Resolume's own drum loops, through the harness's stand-in FFT.
+//===========================================================================
+/// P( X >= k ) for X ~ Binomial( n, p ), in logs so a long tail does not
+/// underflow before it is summed.
+double binomialTail( int n, int k, double p )
+{
+	double total = 0.0;
+	for( int i = k; i <= n; ++i )
+	{
+		const double logTerm = std::lgamma( n + 1.0 ) - std::lgamma( i + 1.0 ) - std::lgamma( n - i + 1.0 ) + i * std::log( p ) + ( n - i ) * std::log1p( -p );
+		total += std::exp( logTerm );
+	}
+	return total;
+}
+
+int runMusic( const Perturb& perturb )
+{
+	std::printf( "\n=== music: on Resolume's own drum loops, each band's onsets fall on the loops' sixteenth notes, not by chance\n" );
+	//The AV loops are 7.5 s: four bars of 4/4 at 128 bpm, starting on the one.
+	//An onset is "on the grid" from half a frame before a sixteenth to two
+	//frames after it (the frame whose window first holds the attack, and one
+	//more for a soft one). Times unrelated to the grid land there with
+	//probability 2.5 frames / a sixteenth = 0.356; each band must beat that
+	//at p < 1e-4, one-sided.
+	const double sixteenth = 60.0 / 128.0 / 4.0;
+	const double before = 0.5 / kFps, after = 2.0 / kFps;
+	const double chance = ( before + after ) / sixteenth;
+	int loops           = 0;
+	for( int i = 1; i <= 6; ++i )
+	{
+		const std::string path = fmt( "/Applications/Resolume Arena/media/AV/Beat 00%d.wav", i );
+		Wav wav;
+		std::string error;
+		if( !wav.Load( path, error ) )
+			continue;
+		++loops;
+		audio::Analyser ears;
+		audio::Settings s;
+		std::vector< double > fired[ 3 ];
+		for( int f = 0; f < 450; ++f )
+		{
+			float bins[ audio::kBins ];
+			wav.Spectrum( f / kFps, bins );
+			ears.Update( bins, audio::kBins, f == 0 ? 0.0f : static_cast< float >( 1.0 / kFps ), s );
+			const audio::Band* b[ 3 ] = { &ears.Low(), &ears.Mid(), &ears.High() };
+			for( int k = 0; k < 3; ++k )
+				if( b[ k ]->fired )
+					fired[ k ].push_back( f / kFps + ( perturb.offGrid ? 0.5 * sixteenth : 0.0 ) );
+		}
+		const char* names[ 3 ] = { "low", "mid", "high" };
+		for( int k = 0; k < 3; ++k )
+		{
+			const int n = static_cast< int >( fired[ k ].size() );
+			int on      = 0;
+			for( double at : fired[ k ] )
+			{
+				const double phase = at - std::floor( at / sixteenth ) * sixteenth;
+				on += ( phase <= after + 1e-9 || phase >= sixteenth - before - 1e-9 ) ? 1 : 0;
+			}
+			const double tail = n > 0 ? binomialTail( n, on, chance ) : 1.0;
+			Check( n >= 10 && tail < 1e-4, fmt( "Beat 00%d, %-4s %2d onsets, %2d on the grid (%.0f%%, chance %.0f%%): p = %.1e", i, names[ k ], n, on, n ? 100.0 * on / n : 0.0,
+			                                     100.0 * chance, tail ) );
+		}
+	}
+	if( loops == 0 )
+	{
+		std::printf( "  SKIPPED  Resolume's AV loops are not in /Applications/Resolume Arena/media/AV -- nothing measured\n" );
+		return 0;
 	}
 	return Verdict();
 }
@@ -1544,6 +1758,99 @@ int runResize( const Perturb& )
 	return Verdict();
 }
 
+//===========================================================================
+// --state: what the host hands over is what it gets back (bassalt's check,
+// with the blend equation added: the strokes are drawn with GL_MAX).
+//===========================================================================
+int runState( const Perturb& )
+{
+	std::printf( "\n=== state: what the host hands over is what it gets back\n" );
+	int problems = 0;
+	std::string what;
+	for( bool effect : { false, true } )
+	{
+		Rig rig( effect );
+		if( !rig.Init( 320, 180 ) )
+			return 1;
+		rig.Set( PT_DRIVE, static_cast< float >( Drive::Beat ) );
+		rig.Press( PT_HIT );
+		GLuint hostArray = 0, hostPack = 0;
+		glGenVertexArrays( 1, &hostArray );
+		glGenBuffers( 1, &hostPack );
+		for( int frame = 0; frame < 12; ++frame )
+		{
+			const float silence[ audio::kBins ] = {};
+			feed( rig.plugin, silence );
+			glBindFramebuffer( GL_FRAMEBUFFER, rig.outputFBO );
+			glViewport( 7, 5, 300, 170 );
+			glBindVertexArray( hostArray );
+			glBindBuffer( GL_PIXEL_PACK_BUFFER, hostPack );
+			glEnable( GL_BLEND );
+			glBlendFuncSeparate( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ZERO );
+			glBlendEquationSeparate( GL_FUNC_REVERSE_SUBTRACT, GL_FUNC_ADD );
+			glClearColor( 0.2f, 0.3f, 0.4f, 0.5f );
+			glEnable( GL_SCISSOR_TEST );
+			glScissor( 0, 0, 320, 180 );
+			glActiveTexture( GL_TEXTURE0 );
+			glUseProgram( 0 );
+
+			rig.plugin.SetTime( frame / kFps );
+			if( rig.plugin.ProcessOpenGL( &rig.process ) != FF_SUCCESS )
+				return 1;
+
+			GLint viewport[ 4 ] = {}, array = 0, program = 0, unit = 0, fbo = 0, src = 0, dst = 0, pack = 0, eqRGB = 0, eqAlpha = 0;
+			GLfloat clear[ 4 ] = {};
+			glGetIntegerv( GL_VIEWPORT, viewport );
+			glGetIntegerv( GL_VERTEX_ARRAY_BINDING, &array );
+			glGetIntegerv( GL_CURRENT_PROGRAM, &program );
+			glGetIntegerv( GL_ACTIVE_TEXTURE, &unit );
+			glGetIntegerv( GL_FRAMEBUFFER_BINDING, &fbo );
+			glGetIntegerv( GL_BLEND_SRC_RGB, &src );
+			glGetIntegerv( GL_BLEND_DST_RGB, &dst );
+			glGetIntegerv( GL_BLEND_EQUATION_RGB, &eqRGB );
+			glGetIntegerv( GL_BLEND_EQUATION_ALPHA, &eqAlpha );
+			glGetIntegerv( GL_PIXEL_PACK_BUFFER_BINDING, &pack );
+			glGetFloatv( GL_COLOR_CLEAR_VALUE, clear );
+			auto expect = [ & ]( bool ok, const char* name ) {
+				if( !ok )
+				{
+					++problems;
+					what += std::string( " " ) + name;
+				}
+			};
+			expect( viewport[ 0 ] == 7 && viewport[ 1 ] == 5 && viewport[ 2 ] == 300 && viewport[ 3 ] == 170, "viewport" );
+			expect( array == static_cast< GLint >( hostArray ), "vertex-array" );
+			expect( program == 0, "program" );
+			expect( unit == GL_TEXTURE0, "active-unit" );
+			expect( fbo == static_cast< GLint >( rig.outputFBO ), "framebuffer" );
+			expect( pack == static_cast< GLint >( hostPack ), "pack-buffer" );
+			expect( glIsEnabled( GL_BLEND ) && src == GL_SRC_ALPHA && dst == GL_ONE_MINUS_SRC_ALPHA, "blend" );
+			expect( eqRGB == GL_FUNC_REVERSE_SUBTRACT && eqAlpha == GL_FUNC_ADD, "blend-equation" );
+			expect( glIsEnabled( GL_SCISSOR_TEST ), "scissor" );
+			expect( clear[ 0 ] == 0.2f && clear[ 1 ] == 0.3f && clear[ 2 ] == 0.4f && clear[ 3 ] == 0.5f, "clear-colour" );
+			for( int u = 0; u < 8; ++u )
+			{
+				GLint bound = 0;
+				glActiveTexture( static_cast< GLenum >( GL_TEXTURE0 + u ) );
+				glGetIntegerv( GL_TEXTURE_BINDING_2D, &bound );
+				expect( bound == 0, "texture-unit" );
+			}
+			glActiveTexture( GL_TEXTURE0 );
+		}
+		glDisable( GL_SCISSOR_TEST );
+		glDisable( GL_BLEND );
+		glBlendEquation( GL_FUNC_ADD );
+		glBindVertexArray( 0 );
+		glBindBuffer( GL_PIXEL_PACK_BUFFER, 0 );
+		glDeleteVertexArrays( 1, &hostArray );
+		glDeleteBuffers( 1, &hostPack );
+	}
+	Check( problems == 0, fmt( "source and Over, twelve frames each (two new drawings): viewport, vertex array, program, active unit, framebuffer, "
+	                           "pack buffer, blend, blend equation, scissor, clear colour and eight texture units all as the host left them (%d wrong:%s)",
+	                           problems, what.empty() ? " none" : what.c_str() ) );
+	return Verdict();
+}
+
 int runBench()
 {
 	struct Size
@@ -1597,10 +1904,10 @@ int runBench()
 const std::vector< CheckEntry >& checks()
 {
 	static const std::vector< CheckEntry > list = {
-		{ "onset", runOnset },     { "bands", runBands },   { "beat", runBeat },     { "hand", runHand },
+		{ "onset", runOnset },     { "bands", runBands },   { "music", runMusic },   { "beat", runBeat },     { "hand", runHand },
 		{ "defaults", runDefaults }, { "names", runNames }, { "determinism", runDeterminism },
 		{ "twos", runTwos },       { "boil", runBoil },     { "width", runWidth },   { "latency", runLatency },
-		{ "over-check", runOver }, { "resize", runResize },
+		{ "over-check", runOver }, { "resize", runResize }, { "state", runState },
 	};
 	return list;
 }
@@ -1633,6 +1940,7 @@ int runNegative( bool offlineOnly = false )
 	};
 	add( "onset", runOnset, "the analyser not primed: deaf after the cold start", []( Perturb& p ) { p.unprimed = true; } );
 	add( "bands", runBands, "expect rings on the snare", []( Perturb& p ) { p.wrongBands = true; } );
+	add( "music", runMusic, "every onset half a sixteenth late: off the music's grid", []( Perturb& p ) { p.offGrid = true; } );
 	add( "beat", runBeat, "expect 120 bpm whatever the host says", []( Perturb& p ) { p.assumeBpm = 120.0; } );
 	add( "hand", runHand, "two drawings with one seed: no boil", []( Perturb& p ) { p.sameDrawing = true; } );
 	add( "hand", runHand, "a hand 1.3 times as unsteady as the law", []( Perturb& p ) { p.handScale = 1.3; } );
@@ -1677,7 +1985,8 @@ int main( int argc, char** argv )
 	std::string outPath = "/tmp/scrawl.png";
 	std::vector< std::string > settings;
 	int width = 1280, height = 720, frames = 100;
-	bool effect = false, demo = false;
+	bool effect = false, demo = false, ghost = false;
+	std::string wavPath;
 	std::string mode, scriptPath;
 	int filmFrames = -1;
 
@@ -1694,6 +2003,9 @@ int main( int argc, char** argv )
 			             "  --frames N        frames of 60 fps before reading back (default 100)\n"
 			             "  --audio demo      feed the synthetic band: a kick every 28 frames, a snare\n"
 			             "                    on every other one, hats between (default: silence)\n"
+			             "  --audio ghost     the same with a soft ghost kick between the kicks\n"
+			             "  --wav PATH        a 16-bit WAV, looped, through the harness's stand-in for\n"
+			             "                    Resolume's FFT (an assumption: see README)\n"
 			             "  --set \"Name=V\"    set a parameter by its display name; an option by\n"
 			             "                    its index or its name; an event (Hit) is pressed. Repeatable.\n"
 			             "  --list            every parameter and its default\n"
@@ -1701,8 +2013,8 @@ int main( int argc, char** argv )
 			             "  --film N          N frames, raw RGBA on stdout\n"
 			             "  --script PATH     cues for --pipe/--film: 'frame Name value'\n\n"
 			             "  --shaders --out DIR   every program as compiled, written out and through the driver\n\n"
-			             "  checks: --onset --bands --beat --hand --defaults --names --determinism\n"
-			             "          --twos --boil --width --latency --over-check --resize --negative --bench\n"
+			             "  checks: --onset --bands --music --beat --hand --defaults --names --determinism\n"
+			             "          --twos --boil --width --latency --over-check --resize --state --negative --bench\n"
 			             "  --offline         the checks and negative controls that need no GL context\n" );
 			return 0;
 		}
@@ -1715,13 +2027,16 @@ int main( int argc, char** argv )
 		else if( argument == "--audio" && hasNext )
 		{
 			const std::string feedName = argv[ ++i ];
-			if( feedName != "demo" && feedName != "none" )
+			if( feedName != "demo" && feedName != "ghost" && feedName != "none" )
 			{
-				std::fprintf( stderr, "--audio takes 'demo' or 'none'\n" );
+				std::fprintf( stderr, "--audio takes 'demo', 'ghost' or 'none'\n" );
 				return 2;
 			}
-			demo = feedName == "demo";
+			demo  = feedName != "none";
+			ghost = feedName == "ghost";
 		}
+		else if( argument == "--wav" && hasNext )
+			wavPath = argv[ ++i ];
 		else if( argument == "--over" )
 			effect = true;
 		else if( argument == "--pipe" )
@@ -1752,6 +2067,48 @@ int main( int argc, char** argv )
 			std::fprintf( stderr, "unknown argument '%s' (try --help)\n", argument.c_str() );
 			return 2;
 		}
+	}
+
+	Wav music;
+	if( !wavPath.empty() )
+	{
+		std::string error;
+		if( !music.Load( wavPath, error ) )
+		{
+			std::fprintf( stderr, "--wav: %s\n", error.c_str() );
+			return 2;
+		}
+	}
+
+	if( mode == "listen" )
+	{
+		//What the analyser hears: each band's onsets over the frames asked for,
+		//from --wav or the demo band. No GL, no plugin.
+		audio::Analyser ears;
+		audio::Settings s;
+		std::vector< double > fired[ 3 ];
+		for( int f = 0; f < frames; ++f )
+		{
+			float bins[ audio::kBins ] = {};
+			if( !wavPath.empty() )
+				music.Spectrum( f / kFps, bins );
+			else if( demo )
+				demoSpectrum( f, bins, kDemoPeriod, true, ghost );
+			ears.Update( bins, audio::kBins, f == 0 ? 0.0f : static_cast< float >( 1.0 / kFps ), s );
+			const audio::Band* b[ 3 ] = { &ears.Low(), &ears.Mid(), &ears.High() };
+			for( int k = 0; k < 3; ++k )
+				if( b[ k ]->fired )
+					fired[ k ].push_back( f / kFps );
+		}
+		const char* names[ 3 ] = { "low", "mid", "high" };
+		for( int k = 0; k < 3; ++k )
+		{
+			std::printf( "%-4s %3zu onsets:", names[ k ], fired[ k ].size() );
+			for( double s0 : fired[ k ] )
+				std::printf( " %.3f", s0 );
+			std::printf( "\n" );
+		}
+		return 0;
 	}
 
 	if( mode == "list" )
@@ -1864,7 +2221,7 @@ int main( int argc, char** argv )
 	if( ran )
 		;
 	else if( mode == "pipe" )
-		result = runPipe( effect, width, height, scriptPath, filmFrames, settings, demo );
+		result = runPipe( effect, width, height, scriptPath, filmFrames, settings, demo, ghost, wavPath.empty() ? nullptr : &music );
 	else if( mode == "negative" )
 		result = runNegative();
 	else if( mode == "bench" )
@@ -1877,7 +2234,9 @@ int main( int argc, char** argv )
 	else
 	{
 		Rig rig( effect );
-		rig.demo = demo;
+		rig.demo  = demo;
+		rig.ghost = ghost;
+		rig.wav   = wavPath.empty() ? nullptr : &music;
 		if( !rig.Init( width, height ) )
 			result = 1;
 		else
