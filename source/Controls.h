@@ -65,13 +65,14 @@ enum ParamId : unsigned int
 	PT_TREBLE_FROM,
 
 	// -- The Stoatworks About block --------------------------------------------
-	// Three buttons while there is no user guide (StoatworksAbout.h's guide is
-	// empty); the guide's button is a fourth id here, and the static_assert in
-	// Scrawl.cpp asks for it the day the generated About block gains one.
+	// The text and four buttons (user guide, project page, source, support), as
+	// the generated StoatworksAbout.h declares them. The static_assert in
+	// Scrawl.cpp catches the day that count changes.
 	PT_ABOUT_TEXT,
 	PT_ABOUT_BUTTON_1,
 	PT_ABOUT_BUTTON_2,
 	PT_ABOUT_BUTTON_3,
+	PT_ABOUT_BUTTON_4,
 	PT_SOURCE_COUNT,
 
 	// -- Over (the effect only) ------------------------------------------------
