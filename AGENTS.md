@@ -212,7 +212,5 @@ Assumed, and said so in the README:
 - Never loaded into Resolume on macOS.
 - Windows: gated in Arena 7.27.1 on win-lab, 15 passed with audio skipped, but only five
   controls separated from the churn (above), and no sound has reached it there.
-- `ATTRIBUTIONS.md` is the provisional hand copy until the backend's sync scripts replace
-  it; they also write `.github/FUNDING.yml` and the issue forms, once the repo is public.
 - No browser demo, no OpenFX port, no presets.
 - No lettering, no aura round the clip's subject (see the idea).

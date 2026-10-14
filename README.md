@@ -240,6 +240,10 @@ Filming uses the fleet's frame format and cue sheets:
 
 This project is built on other people's work — see [ATTRIBUTIONS.md](ATTRIBUTIONS.md).
 
+<!-- attributions:start -->
+This project is built on other people's work — see [ATTRIBUTIONS.md](ATTRIBUTIONS.md).
+<!-- attributions:end -->
+
 ## Licence
 
 MIT.

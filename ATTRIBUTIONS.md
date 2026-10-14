@@ -3,10 +3,8 @@
 Scrawl is built on other people's work. This file lists what that work is, who did
 it, and what it is doing here.
 
-This is a **provisional hand copy** (2026-10-13). Registered fleet repos have it
-generated from the master lists in `stoatworks-backend` by
-`scripts/sync-attributions.py`; when Scrawl is registered, this file is replaced by that
-output and edited there, not here.
+It is generated — the master lists live in the `stoatworks-backend` repo and are
+pushed out by `scripts/sync-attributions.py`. Edit it there, not here.
 
 ## Code we derived from other people's work
 
@@ -38,7 +36,7 @@ Libraries, SDKs and frameworks the project is built on or bundles.
 Licence: BSD-3-Clause  
 Copyright: FreeFrame
 
-Vendored as a git submodule at external/ffgl.
+Vendored as a git submodule at external/ffgl (third_party/ffgl in oxbow).
 
 The plugin ABI itself. An FFGL effect or source is defined by this SDK's headers — there is no other way to be loadable by Resolume Arena and Avenue.
 
@@ -60,7 +58,7 @@ Copyright: the PNG Reference Library authors
 
 Arrives inside the FFGL submodule, under the SDK's CustomThumbnail sample.
 
-Part of the upstream SDK tree rather than something this plugin calls directly — listed because it is present in the checkout.
+Part of the upstream SDK tree rather than something these plugins call directly — listed because it is present in the checkout.
 
 ## Work we checked ourselves against
 
@@ -70,12 +68,17 @@ No code was taken from these — but they were how we knew we had it right, and 
 
 A pen writing a stroke on, a burst popping out and a bolt striking all move along 10t³ − 15t⁴ + 6t⁵, the minimum-jerk profile of an unconstrained reach.
 
-### PCG — Melissa O'Neill (2014); hash functions for GPU rendering — M. Jarzynski and M. Olano, JCGT 9 (2020)
+### PCG — Melissa O'Neill (2014)
 
-<https://www.pcg-random.org/>  
+<https://www.pcg-random.org/>
+
+Each doodle's random choices (where it goes, its size, its colour) come from a PCG32 stream in source/Maths.h, so a seed gives the same drawing on every machine.
+
+### Hash functions for GPU rendering — M. Jarzynski and M. Olano, JCGT 9 (2020)
+
 <https://jcgt.org/published/0009/03/02/>
 
-Every random choice (where a doodle goes, each drawing's hand) is a PCG32 stream or Jarzynski and Olano's PCG hash, so a seed gives the same drawing on every machine.
+Each drawing's hand and each doodle's seed come from PCG's output permutation used as a hash, as Jarzynski and Olano give it (source/Maths.h, used by source/Doodles.cpp).
 
 ### Fast random integer generation in an interval — Daniel Lemire (2019)
 
