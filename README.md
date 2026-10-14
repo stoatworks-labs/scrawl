@@ -147,8 +147,13 @@ so the beat drives it there. It passed all 15 of the fleet's Arena checks that c
 default, and nothing in Arena's log. That gate is a blunt instrument for this plugin,
 though. It decides whether a control does anything by comparing frames grabbed a moment
 apart, and Scrawl redraws and adds doodles all the time, so only Backdrop and Centre Y on
-the source, and Drive, Centre Y and Arena's own Opacity on the effect, stood clear of the
-churn. The rest came back too close to call, and none came back dead.
+the source, and Drive and Centre Y on the effect (Arena's own Opacity too, in one of two
+runs), stood clear of the churn. The rest came back too close to call, and none came back
+dead. So I looked instead. With the controls set one at a time through Arena's own API, the
+frames it served showed Paper and Ink, Neon, a colour of my own, three passes, a smoother
+line at Wobble 0, a fatter one at Line Width 1, bigger doodles at Size 1, the rings gathered
+at Placement Centre and the wave alone with the other doodles at 0; and the effect drawing
+over the clip at its defaults and in Neon, with the clip untouched at Mix 0.
 
 The About block is the generated one, with the guide's button. There's no OpenFX port, no
 presets and no browser demo.

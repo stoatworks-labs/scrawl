@@ -191,10 +191,17 @@ Resolume on macOS.
 
 Windows (2026-10-14): the MSVC x64 build was gated in Resolume Arena 7.27.1 on win-lab (Mesa
 llvmpipe, no GPU, no sound device): 15 passed, 0 failed, 2 skipped (audio). Every control as
-declared. Live: Backdrop and Centre Y (source); Drive, Centre Y and Opacity (Over).
+declared. Live, in both runs (the second, formal, on the
+release build): Backdrop and Centre Y (source); Drive and Centre Y (Over), with Opacity
+live in run 1 only.
 Everything else inconclusive, none dead: the picture churns between any two grabs (noise
 floor 7.5 levels on the source, 4.6 on Over), the gate's blind spot for a picture that never
-stands still. The expectation is plugin-bench `arena/expect/scrawl.json`.
+stands still. The expectation is plugin-bench `arena/expect/scrawl.json`. A by-eye
+spot-check after it (Arena's thumbnails, one control set at a time over REST): the palettes,
+Backdrop Paper, Passes 3, Wobble 0, Line Width 1, Size 1, Placement Centre and the doodle
+kinds at 0 all changed the source as described, and the Over drew on the gate's carrier and
+gave it back untouched at Mix 0. Over a clip of tiny native size the Over's lines came out
+very fat (Line Width is in that clip's frame heights); not looked into.
 
 Assumed, and said so in the README:
 

@@ -34,8 +34,10 @@ the plugin's offline harness rather than captured from Resolume.*
 > On Windows, both plugins load, register and draw in Resolume Arena 7.27.1, with every control
 > as declared, on a machine with software rendering and no GPU or sound device, so it ran on
 > the beat there. The fleet's test of whether each control changes the picture could only
-> confirm a handful (Backdrop, Centre Y, Drive), because the doodles change between any two
-> frames it grabs; it found none dead.
+> confirm a handful (Backdrop, Centre Y, Drive), because the doodles change between any two frames it grabs; it found
+> none dead. Looked at by eye in Arena's own frames instead, the palettes, Backdrop, Passes,
+> Wobble, Line Width, Size, Placement, the doodle mix and the effect's Mix all did what this
+> guide says.
 > Try it on a spare layer before you put it in a show.
 >
 > This codebase was created with AI assistance, directed and reviewed by a human author.

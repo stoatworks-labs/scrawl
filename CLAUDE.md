@@ -84,7 +84,8 @@ harness's checks.
 ## Not done yet
 - Never loaded into Resolume on macOS.
 - Windows: gated in Arena 7.27.1 on win-lab (llvmpipe, no sound): 15 passed, audio skipped;
-  2 + 3 controls live, the rest inconclusive (the doodles never stand still), none dead;
+  2 + 2 controls live (Opacity too in one run), the rest inconclusive (the doodles never
+  stand still), none dead, and a by-eye spot-check of Arena's frames saw the main ones work;
   plugin-bench `arena/expect/scrawl.json`.
 - No browser demo, OpenFX port or presets. No lettering ("KRAKOOM") and no aura round the
   clip's subject (AGENTS.md, the idea).
