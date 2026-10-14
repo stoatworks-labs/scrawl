@@ -2,7 +2,10 @@
 
 > **AI-assisted project.** This codebase was created with [Claude](https://claude.com/claude-code)
 > (Anthropic), directed and reviewed by a human author. It has **never been loaded into
-> Resolume**. Everything below is measured by an offline harness that drives the real
+> Resolume on macOS**.
+> On Windows both plugins load, register and draw in Resolume Arena 7.27.1 on a machine with
+> software rendering and no GPU or sound device, with every control as declared.
+> The numbers here are measured by an offline harness that drives the real
 > plugin classes in a headless GL context: a held drawing is the same picture to the bit
 > until the next one is due, the boil read back out of the rendered pixels matches the
 > hand's stated law to 2-3%, a line's cross-section sums to Line Width to a few thousandths
@@ -54,8 +57,9 @@ the picture included. That's the whole look, and the rest falls out of it:
   it.
 - **Strokes taper** where the pen lands and lifts, and a stroke being written on stops
   abruptly at the pen.
-- **Wobble 0 is a plotter**: no boil, no registration error, an even width, the same
-  picture every drawing.
+- **Wobble 0 is a plotter**: no boil, no registration error and no wander in the pen's
+  pressure, so a still doodle comes out the same in every drawing. The ends still taper,
+  since landing and lifting don't depend on Wobble.
 - **Passes** draws everything two or three times with independent errors, for the sketchy
   doubled line.
 
@@ -69,7 +73,7 @@ clip.
 | --- | --- | --- |
 | Rings | the kick (the low band) | 1-3 wavy lines spreading out from where the sound came from: arcs either side of it, `(( ))`, when scattered; arcs facing the room from the Speakers; full circles that never quite close from the Centre. They thin out and break into dashes as they go. |
 | Bursts | the snare (the middle band) | spikes shooting out from an impact and shrinking to their tips; on a hard hit, a jagged star round it as well |
-| Bolts | a kick as hard as the hardest lately | a zigzag with a fork, written in one drawing, flickering on alternate drawings in its second half, then gone |
+| Bolts | a kick as hard as the hardest lately (on the beat drive, the one) | a zigzag with a fork, written in one drawing, flickering on alternate drawings in its second half, then gone |
 | Curls | the hi-hats (the high band) | a loop-the-loop or a spiral, written on, drifting off, and wiped from the tail |
 | Wave | always, while there's sound | a line across the frame whose wiggle is the spectrum: six sines, the bass a slow swell and the top a fast fizz |
 
@@ -89,7 +93,10 @@ four, a bolt on the one and curls on the "and"s. *Auto*, the default, follows th
 when there is any and the beat when there isn't, so it does something the moment you drop
 it on a layer.
 
-**Hit** fires one of everything at full strength, for a pad on a controller.
+**Hit** fires one of each doodle at full strength, for a pad on a controller: a set of
+rings, a burst, a bolt and a curl. A kind turned down to 0 stays out, the bolt doesn't wait
+for the last one, and it's one curl even when Curls would draw two a hat. The wave isn't
+fired by anything; it's always there while there's sound.
 
 ## Controls
 
@@ -100,9 +107,10 @@ it on a layer.
   lifetime). Seed.
 - **Doodles:** Rings, Bursts, Bolts, Curls and Wave, how much of each; 0 is none. Rings
   sets 1-3 lines a set; Bursts sets 8-14 spikes, and the star appears from 0.5 on a hard
-  hit; Bolts lowers the bar for a bolt and the gap between them (one every 2 s at the
-  bottom, every 0.4 s at the top) and adds the fork from 0.5; Curls draws two a hat from
-  0.67; Wave sets the line's height.
+  hit; Bolts adds the fork from 0.5 and, while the music drives, lowers the bar for a bolt
+  and the shortest gap between two, from nearly 2 s near the bottom to 0.4 s at the top
+  (the beat drive puts one on the one of every bar, whatever Bolts is above 0); Curls draws
+  two a hat from 0.67; Wave sets the line's height.
 - **Place:** Placement (*Scatter* anywhere, round the *Centre*, or from two *Speakers*
   either side and low). Centre X and Centre Y.
 - **Look:** Palette (*White*, *Ink*, *Neon* or the one *Colour*). Colour. Glow. Backdrop
@@ -111,7 +119,9 @@ it on a layer.
 - **Audio:** Audio (Resolume's FFT buffer). Sensitivity (how quiet a note can be and still
   count). Bass Bins (how many of the lowest bins are the kick's band, 1 to 8). Treble From
   (where the hi-hats' band starts, 4 to 48).
-- **Over:** Mix.
+- **About:** the credit line (name, version, licence, maker) and four buttons: User guide,
+  Project page, Source on GitHub and Support the work.
+- **Over** (the effect only, after About): Mix.
 
 ![Four frames: neon doodles on black; black ink doodles on cream paper; neon doodles from two speaker positions over a blue kaleidoscope clip; white doubled, sketchy doodles over red ERROR text](docs/set.png)
 
@@ -121,14 +131,27 @@ its Cyberspace clip. Each with one of Resolume's AV loops driving it. Rendered b
 
 ## Status
 
-**v0.1.0, local, 2026-10-13.** Not released, not on GitHub, not registered on the website.
+**v0.1.0, 2026-10-14, and early days.** User guide:
+[stoatworks-labs.com/software/scrawl/guide](https://stoatworks-labs.com/software/scrawl/guide/)
+(the same text is [docs/USER-GUIDE.md](docs/USER-GUIDE.md)). Project page:
+[stoatworks-labs.com/software/scrawl](https://stoatworks-labs.com/software/scrawl/).
 
-It has **never been loaded into Resolume** on either platform. `oxbow probe` reads both
+It has **never been loaded into Resolume on macOS**. On this Mac, `oxbow probe` reads both
 bundles the way a host does and finds `SW Scrawl` / `SK01` / source and `SW Scrawl Over` /
-`SK02` / effect, and `oxbow selftest` renders through them; nothing else has run them.
-Only macOS (Apple Silicon) has built or run it. The Windows build exists only as CI
-config. The About block is a provisional hand copy with no user guide button (there's no
-guide yet), and there's no OpenFX port and no browser demo.
+`SK02` / effect, and `oxbow selftest` renders through them; nothing else has run them here.
+
+On Windows, the x64 build loads, registers and draws in Resolume Arena 7.27.1 on the fleet's
+Windows machine, which has software rendering (Mesa llvmpipe), no GPU and no sound device,
+so the beat drives it there. It passed all 15 of the fleet's Arena checks that can run there
+(the audio ones are skipped): every control as declared, by name, order, type, range and
+default, and nothing in Arena's log. That gate is a blunt instrument for this plugin,
+though. It decides whether a control does anything by comparing frames grabbed a moment
+apart, and Scrawl redraws and adds doodles all the time, so only Backdrop and Centre Y on
+the source, and Drive, Centre Y and Arena's own Opacity on the effect, stood clear of the
+churn. The rest came back too close to call, and none came back dead.
+
+The About block is the generated one, with the guide's button. There's no OpenFX port, no
+presets and no browser demo.
 
 What's measured, on this Mac:
 
@@ -137,7 +160,7 @@ What's measured, on this Mac:
 | on twos | over 4 s, the picture changes on **exactly** the frames a new drawing starts on: 96 at On Ones, 48 at On Twos, 32 at On Threes, at 640x360 and 320x180, source and Over, and on no others |
 | the boil, from the hand | 400 drawings of a circle at two sizes and two Wobbles: the radial spread between drawings is the law's A²(1/2 + 1/16) to **0.4-1.5%** |
 | the boil, from the pixels | one ring held still and drawn 120 times on ones: its radius read back along 282 rays spreads by the law to **2-3%**, at 640x360 and 320x180 |
-| the pen | a stroke's ends at zero width and its middle at exactly half Line Width; stopped half-way, it's still pressing; at full Wobble the pressure wanders within ±15% |
+| the pen | a stroke's ends at zero width and its middle at exactly half Line Width; stopped half-way, it's still pressing; at full Wobble the pressure wanders within ±15% (the wander reaches its full ±15% at Wobble 0.5 and stays there) |
 | line width | a flat line's every column of coverage sums to Line Width in pixels to **0.0023 px** (half-float coverage), three widths, two rasters |
 | latency | a lone kick is on the page in the first drawing made at or after its frame, at 24, 12 and 8 drawings a second, for every frame it can land on |
 | the bands | from a cold start mid-song, the kick fires only the low band, the snare only the middle and the hats only the top, each on its own frame; rings, bursts and curls are born on exactly those frames |
@@ -149,7 +172,7 @@ What's measured, on this Mac:
 | second rasteriser | every picture check above passes again on Apple's software renderer |
 | negative controls | **14** deliberately wrong models, **all 14** detected |
 | mutants | **8** one-character mutants (3 in the GLSL, 5 in the C++), **all 8** caught |
-| dead controls | **27** parameters swept, all live: every one but the Audio buffer, the buttons and the About text |
+| dead controls | **27** parameters swept, all live: every one but the Audio buffer and the About block (Hit included, and the colour's red, green and blue counted apart) |
 
 Render cost (`sctest --bench`, busy: every kind at full, a Hit every ten frames, Passes 3,
 up to 50,000 capsules a drawing, four runs on a machine shared with other jobs): a new

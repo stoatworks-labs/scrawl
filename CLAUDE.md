@@ -70,18 +70,31 @@ harness's checks.
   instantiate the plugin.
 - `scrawl_core` is an OBJECT library: the registrations are file-scope constructors
   nothing references.
-- Local only (`~/dev/scrawl`), no remote yet. Its intended home is
-  github.com/stoatworks-labs/scrawl, public, where CI may run (the fleet's rule for Actions
-  minutes).
+- Lives at `~/Projects/resolume/scrawl`. Public at github.com/stoatworks-labs/scrawl: a
+  `v*` tag runs `release.yml`, and CI runs because the repo is public (the fleet's rule for
+  Actions minutes).
+- **Generated, do not edit:** `source/StoatworksAbout*.h` (stoatworks-backend's
+  sync-about.py; the About block is the credit line and four buttons, so `PT_ABOUT_BUTTON_4`
+  exists and Mix is id 32), and `ATTRIBUTIONS.md`, `.github/FUNDING.yml` and the issue forms
+  once the backend's sync scripts have run on the public repo.
+- The user guide is `docs/USER-GUIDE.md` (also on the website at
+  stoatworks-labs.com/software/scrawl/guide/). A control change means a guide change.
+- Parameter ids are **append only** from v0.1.0.
 
 ## Not done yet
-- Never loaded into Resolume; Windows never built; no user guide, video, demo, OpenFX
-  port or presets; not registered (provisional About block and ATTRIBUTIONS.md).
+- Never loaded into Resolume on macOS.
+- Windows: gated in Arena 7.27.1 on win-lab (llvmpipe, no sound): 15 passed, audio skipped;
+  2 + 3 controls live, the rest inconclusive (the doodles never stand still), none dead;
+  plugin-bench `arena/expect/scrawl.json`.
+- No browser demo, OpenFX port or presets. No lettering ("KRAKOOM") and no aura round the
+  clip's subject (AGENTS.md, the idea).
 
 ## Diagnostics
 
 `source/Diag.{h,cpp}` is a log file only, with no crash handler (this runs inside
 Resolume). It records the GL vendor/renderer, a shader that failed to compile, a
 framebuffer that would not complete, and the first time audio reached the FFT buffer.
+`SCRAWL_LOG_DIR` overrides the folder.
 
-    ~/Library/Logs/scrawl/scrawl.YYYY-MM-DD.log
+    macOS    ~/Library/Logs/scrawl/scrawl.YYYY-MM-DD.log
+    Windows  %LOCALAPPDATA%\scrawl\logs\scrawl.YYYY-MM-DD.log

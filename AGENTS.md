@@ -67,7 +67,11 @@ no GL, which is how the offline checks reach the real plugin class.
   right in the drawing that shows it.
 - **Bolts ride the low band**, not a full-spectrum onset (see the traps), and are rate
   limited by Bolts: a gap of 0.4 + 1.6 × (1 − Bolts) s, a bar of 1 − 0.5 × Bolts on the
-  low band's strength.
+  low band's strength. That limit is the music drive's only: the beat drive spawns a bolt
+  on every downbeat, and there Bolts sets only the size and the fork (and 0 is none).
+- **Hit** spawns one of each kind at strength 1 through `Score::Spawn`, so a kind at 0
+  stays out. It is one curl even at Curls ≥ 0.67, its bolt neither waits for nor resets the
+  bolt gap (`lastBolt`), and it does nothing to the wave, which is never spawned.
 - **Drive Auto** follows the music while any bin has been above 1e-5 within two seconds,
   and the beat otherwise, so the plugin does something on any machine, Arena gate included
   (win-lab has no sound device).
@@ -75,14 +79,19 @@ no GL, which is how the offline checks reach the real plugin class.
   circles everywhere looked like bubbles), arcs facing the room from the Speakers, and
   full, overshooting circles round the Centre.
 - **Wobble 0 is a plotter**, including the pressure's wander (0.15 × min(1, 2 × Wobble)):
-  that is the control's meaning, and it gives `--width` a straight line to measure.
+  that is the control's meaning, and it gives `--width` a straight line to measure. The
+  wander is at its full ±15% from Wobble 0.5 (the default) up, not only at 1. The landing
+  and lift tapers don't depend on Wobble, so a plotter's strokes still taper at the ends.
 - **Defaults** were chosen by looking at contact sheets over Resolume's own clips and
   loops: White with Glow 0.35, Line Width 0.0065, on twos, Scatter, Rings 0.7, Bursts 0.6,
   Bolts 0.4, Curls 0.5, Wave 0.5. The first look had rings growing to 70% of the frame;
   they were shrunk to about a third.
-- **About block: three buttons.** `StoatworksAbout.h` is a provisional hand copy with
-  `guide = ""`, so the generated links omit the guide's button and the enum has three
-  button ids; Scrawl.cpp's static_assert asks for the fourth when a guide exists.
+- **About block: generated, four buttons.** `StoatworksAbout.h` comes from
+  stoatworks-backend's sync-about.py (2026-10-14), with the guide's URL, so the block is the
+  credit line and User guide, Project page, Source on GitHub, Support the work. Until then it
+  was a hand copy with three buttons; the guide's button added `PT_ABOUT_BUTTON_4`, which
+  moved Mix from id 31 to 32 before v0.1.0 shipped. Ids are append only from v0.1.0.
+  Scrawl.cpp's static_assert catches the day the block's size changes again.
 
 ## The traps, in the order they cost time
 
@@ -177,7 +186,15 @@ note in the music. `--no-context` makes those nine go dead.
 ## What is verified, and what is assumed
 
 Verified on this Mac (Apple Silicon, 2026-10-13): everything in the README's Status table,
-`verify.sh` green, `oxbow probe` and `selftest` on both universal bundles.
+`verify.sh` green, `oxbow probe` and `selftest` on both universal bundles. Never loaded into
+Resolume on macOS.
+
+Windows (2026-10-14): the MSVC x64 build was gated in Resolume Arena 7.27.1 on win-lab (Mesa
+llvmpipe, no GPU, no sound device): 15 passed, 0 failed, 2 skipped (audio). Every control as
+declared. Live: Backdrop and Centre Y (source); Drive, Centre Y and Opacity (Over).
+Everything else inconclusive, none dead: the picture churns between any two grabs (noise
+floor 7.5 levels on the source, 4.6 on Over), the gate's blind spot for a picture that never
+stands still. The expectation is plugin-bench `arena/expect/scrawl.json`.
 
 Assumed, and said so in the README:
 
@@ -192,10 +209,10 @@ Assumed, and said so in the README:
 
 ## Not done
 
-- Never loaded into Resolume; Windows never built or run (CI config only); no Arena gate
-  expectation in plugin-bench yet.
-- No GitHub repo, tag, website entry or registration: `StoatworksAbout*.h` and
-  `ATTRIBUTIONS.md` are provisional hand copies, and there is no `.github/FUNDING.yml` or
-  issue templates (the backend's sync scripts write those).
-- No user guide, no video, no browser demo, no OpenFX port, no presets.
+- Never loaded into Resolume on macOS.
+- Windows: gated in Arena 7.27.1 on win-lab, 15 passed with audio skipped, but only five
+  controls separated from the churn (above), and no sound has reached it there.
+- `ATTRIBUTIONS.md` is the provisional hand copy until the backend's sync scripts replace
+  it; they also write `.github/FUNDING.yml` and the issue forms, once the repo is public.
+- No browser demo, no OpenFX port, no presets.
 - No lettering, no aura round the clip's subject (see the idea).
