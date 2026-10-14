@@ -32,6 +32,38 @@ and none of the film's artwork, and it has nothing to do with the film's makers.
 loop driving it, 1.5 s in. Rendered by the plugin's offline harness (`sctest --over --pipe
 --wav`), not captured from Resolume.</sub>
 
+<!-- downloads:start -->
+
+## Download
+
+**[v0.1.0](https://github.com/stoatworks-labs/scrawl/releases/tag/v0.1.0)** — prebuilt for macOS and Windows. Pick your platform:
+
+<details>
+<summary><b>macOS</b> — Universal (Apple Silicon + Intel)</summary>
+
+| Build | Download | Size |
+| --- | --- | --- |
+| Universal (Apple Silicon + Intel) · .dmg disk image | [`scrawl-0.1.0-macos-universal.dmg`](https://github.com/stoatworks-labs/scrawl/releases/download/v0.1.0/scrawl-0.1.0-macos-universal.dmg) | 477 KB |
+| Universal (Apple Silicon + Intel) · .zip archive | [`scrawl-macos-universal.zip`](https://github.com/stoatworks-labs/scrawl/releases/latest/download/scrawl-macos-universal.zip) | 422 KB |
+
+</details>
+
+<details>
+<summary><b>Windows</b> — x64</summary>
+
+| Build | Download | Size |
+| --- | --- | --- |
+| x64 · .exe installer | [`scrawl-0.1.0-windows-x86_64-setup.exe`](https://github.com/stoatworks-labs/scrawl/releases/download/v0.1.0/scrawl-0.1.0-windows-x86_64-setup.exe) | 236 KB |
+| x64 · .zip archive | [`scrawl-windows-x86_64.zip`](https://github.com/stoatworks-labs/scrawl/releases/latest/download/scrawl-windows-x86_64.zip) | 256 KB |
+
+</details>
+
+All builds, checksums and release notes: [github.com/stoatworks-labs/scrawl/releases](https://github.com/stoatworks-labs/scrawl/releases).
+
+macOS builds are signed and notarised and open normally. The Windows builds are unsigned, so SmartScreen warns once.
+
+<!-- downloads:end -->
+
 ## The one idea
 
 **Every drawing is a new pass of a hand that can't hold still.** Effects animation is
