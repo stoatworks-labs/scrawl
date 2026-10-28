@@ -81,13 +81,34 @@ harness's checks.
   stoatworks-labs.com/software/scrawl/guide/). A control change means a guide change.
 - Parameter ids are **append only** from v0.1.0.
 
+## Browser demo
+- `demo/` is the page at https://scrawl-demo.stoatworks-labs.com (Cloudflare Worker
+  `scrawl-demo`, a ROUTE on a proxied AAAA 100:: record -- the zone's custom domains are
+  full; deleting the record takes the page dark with a green deploy). `deploy.yml` redeploys
+  it on a push to main; by hand: `cf-run npx wrangler deploy`.
+- `demo/shaders.js` is GENERATED: after changing `source/Shaders.cpp` run
+  `python3 demo/tools/check_shaders.py --write`; verify.sh fails on drift, on a new piece
+  the check does not list, and on a change to how `Programs()` joins them.
+- `demo/plugin.js`'s PORT block (Maths, Controls, Hand, Doodles, Audio, Transport, the
+  harness's demoSpectrum and Scrawl.cpp's clock/Listen/Advance/BuildDrawing) is held to the
+  REAL plugin class by `demo/tools/crosscheck/crosscheck.sh` (verify.sh runs it; needs node
+  and the submodule, no GL, ~30 s): change the C++ and the port with it. The printer splices
+  demoSpectrum out of `tools/sctest/main.cpp`, so a change to the band is a change the port
+  must follow. It builds the C++ `-ffp-contract=off`; the arm64 build is reported only.
+- Pixels: `window.scrawlDemo.renderer` runs a fresh instance through N frames at n/60
+  (`newInstance`, `SetAudio`, `SetTime`, `processFrame`), and the canvas read back compares
+  with `sctest --frames N --size 960x540 --audio demo --out x.png`. Use headless Chrome with
+  `--use-angle=metal`: SwiftShader's line edges come out up to ten levels apart.
+- `demo/vendor/` is the shared kit: never edit it, re-vendor from
+  `stoatworks-backend/resolume-demo/`.
+
 ## Not done yet
 - Never loaded into Resolume on macOS.
 - Windows: gated in Arena 7.27.1 on win-lab (llvmpipe, no sound): 15 passed, audio skipped;
   2 + 2 controls live (Opacity too in one run), the rest inconclusive (the doodles never
   stand still), none dead, and a by-eye spot-check of Arena's frames saw the main ones work;
   plugin-bench `arena/expect/scrawl.json`.
-- No browser demo, OpenFX port or presets. No lettering ("KRAKOOM") and no aura round the
+- No OpenFX port or presets. No lettering ("KRAKOOM") and no aura round the
   clip's subject (AGENTS.md, the idea).
 
 ## Diagnostics

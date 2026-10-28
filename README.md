@@ -187,8 +187,8 @@ line at Wobble 0, a fatter one at Line Width 1, bigger doodles at Size 1, the ri
 at Placement Centre and the wave alone with the other doodles at 0; and the effect drawing
 over the clip at its defaults and in Neon, with the clip untouched at Mix 0.
 
-The About block is the generated one, with the guide's button. There's no OpenFX port, no
-presets and no browser demo.
+The About block is the generated one, with the guide's button. There's no OpenFX port and
+no presets. There is a [browser demo](#browser-demo), which is not the plugin.
 
 What's measured, on this Mac:
 
@@ -232,6 +232,26 @@ What **isn't** verified yet:
   its own design, and it's the obvious v0.2.
 - **No outline of the subject.** The film draws a crackling aura round its characters; this
   draws in the air, not round anything in the clip.
+
+## Browser demo
+
+**<https://scrawl-demo.stoatworks-labs.com/>**: both plugins, every control with its own
+name, group and default. The capsule, reduce, blur and composite passes are the plugin's own
+GLSL, spliced unedited into `demo/shaders.js` (`demo/tools/check_shaders.py`, run by
+`tools/verify.sh`, fails on a changed character). The CPU half (the onset detectors, the
+transport, the score, the hand and the drawing clock) is a JavaScript port, and
+`demo/tools/crosscheck/` holds it to the **real plugin class** driven without GL: over 1,880
+frames of both plugins the same 292 doodles are spawned on the same frames from the same seeds,
+and all 2,167,049 capsules come out identical to the bit (against the plugin built without
+fused multiply-adds; within about 1e-7 frame heights of the arm64 build).
+
+There's no Resolume in a browser, so there's no music either. The page feeds the Audio input
+the harness's synthetic band (`sctest --audio demo`: a kick every 28 frames, snare, hats), not
+your music and not an FFT of anything, and says so; it can also be the ghost band or silence,
+under which Auto follows the plugin's own free-running 120 bpm, there being no host transport.
+It needs WebGL2 with `EXT_color_buffer_float`. Passes, Seed (0 to 99 of 9999), Bass Bins and
+Treble From are dropdowns, and Hit a toggle the page releases. It is a demo, not the plugin,
+and the page says what it does not reproduce.
 
 ## Build
 

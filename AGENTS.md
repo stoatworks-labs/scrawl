@@ -214,10 +214,88 @@ Assumed, and said so in the README:
 - **The clip is premultiplied** (Resolume's DXV clips with alpha are), and the composite is
   premultiplied "over" in the clip's own code values, as Resolume's own blending is.
 
+## The browser demo (2026-10-28)
+
+`demo/` is <https://scrawl-demo.stoatworks-labs.com>, built to the fleet's `resolume-demo`
+kit rules (`~/Projects/resolume/specs/DEMO-BRIEF.md`) in the 2026-10-28 demo sweep, in
+slipstream's shape. What a reader of it must know:
+
+- **The shaders are the plugin's**, all six pieces plus kVersion, spliced by
+  `demo/tools/check_shaders.py --write` into `demo/shaders.js` and compared character for
+  character. It also fails on a piece it does not list and on a change to the JOIN on either
+  side (`Programs()`: every stage `Assemble( { kVersion, piece } )`, the three full-frame
+  passes sharing the quad's vertex stage, and plugin.js's copy). All four programs compile
+  and link in WebGL2 as spliced (ANGLE on Metal and on SwiftShader). GL_MAX, instancing,
+  `gl_VertexID` and RGBA16F (with `EXT_color_buffer_float`) are all core-or-common WebGL2.
+- **The CPU half is a port, held to the real plugin class.** `demo/plugin.js`'s PORT block is
+  Maths.h, Controls.cpp, Hand.cpp, Doodles.cpp, Audio.cpp (rounded to float at every step, as
+  the C++ keeps it), Transport.h, the harness's `demoSpectrum` and Scrawl.cpp's clock, Listen,
+  Advance and BuildDrawing (`ScrawlFrames`). PCG32's 64-bit state is a BigInt; `Hash` is
+  `Math.imul` and `>>> 0`. `demo/tools/crosscheck/printer.cpp` drives the REAL `ScrawlPlugin`
+  without GL (as sctest's Bench does) and `run.mjs` the PORT block, sliced out of plugin.js,
+  through `scenario.mjs`'s 1,880 frames: both plugins, the synthetic band, the ghost band and
+  silence, Hit pressed in a frame, every Placement, Palette and Drawings, Passes 2 and 3, a
+  control moved between drawings, a restart and a three-second stall, 50 fps as well as 60.
+  **Against the C++ built `-ffp-contract=off` (the x86_64 slice's arithmetic): every event,
+  onset, seed and segment count identical, all 7,765 analyser floats identical, 3 of 3,632
+  doubles one ulp apart, and all 2,167,049 segments in 434 drawings identical to the bit.**
+  No libm replay was needed: V8's Math and Apple's libm agreed on every value that reached a
+  float. Against the native arm64 build (fused multiply-adds): the same events, onsets and
+  counts; 90 analyser floats and 97% of segment coordinates bit-identical, the rest within
+  1.2e-7 frame heights. Reported, not required.
+- **The band is the harness's own text.** crosscheck.sh splices `demoSpectrum` out of
+  `tools/sctest/main.cpp` into the printer (awk, from `constexpr int kDemoPeriod` to the
+  function's closing brace), so the port is checked against what `sctest --audio demo` runs,
+  not a third copy.
+- **Mutants**: four deliberate changes to the PORT block (the hand's amplitude 0.003 to
+  0.0031, the band's kick in bin 1, the snare's timing, a doodle's colour drawn from four
+  rather than five) each fail the cross-check (2026-10-28).
+- **The GL half only a reader checks** (the buffers, the instanced draw, GL_MAX, the glow's
+  passes), so frames were compared with `sctest --frames N --size 960x540 --out` at the same
+  settings: a fresh `ScrawlFrames` through N frames at n/60 via
+  `window.scrawlDemo.renderer.processFrame`, the canvas read straight back. Seven cases of
+  the source (defaults; Neon on Black; Ink on Paper with three passes; Centre at Wobble 0.9
+  under the beat; Speakers on ones with the ghost band at Sensitivity 1; Colour with a Hit and
+  Seed 7; Glow 0). **Chrome on Apple's GPU (`--use-angle=metal`): 99.996-100% of pixels
+  identical, none more than one level of 255 apart.** SwiftShader: 92.8-98.8% identical, line
+  edges up to ten levels apart, symmetric in sign: its rasteriser's arithmetic, since the
+  segments are identical.
+- **The music is a synthetic band, and the page says so** wherever it is chosen. A browser
+  has no Resolume FFT parameter, and the fleet does not ask a visitor for a microphone. "Audio
+  in" (a page control, not a plugin one) feeds the Audio buffer the harness's band, its ghost
+  band, or silence; the band is sampled at the page's clock (frame floor(t x 60)), so at 60
+  fps the plugin hears what the harness gives it. With silence, Auto falls back to the beat
+  two seconds later, as the plugin does. There is no SetBeatInfo, so the beat drive is the
+  Transport's own free-running 120 bpm.
+- **Decided without asking**: both plugins on one page (`?plugin=over`, a new instance at the
+  defaults); Passes, Seed (0-99 of 0-9999, conway's choice), Bass Bins and Treble From as
+  dropdowns of their values, the slot stored (so `passes=2` in a link means 3 passes); Hit a
+  toggle released after a frame, and a Hit button beside Audio in; `?audio=demo|ghost|none`,
+  carried by Copy link; the Over's clips `scene` (default), `spot`, `grid`, `bars`, `ramp`,
+  `detail`, `alpha`; the clock's seconds-or-milliseconds vote and its wall-clock fallback not
+  ported (the page's unit is seconds; the harness skips it the same way); the harness's
+  `--negative` hooks not ported.
+- **Differences, all said on the page**: the synthetic band; no host transport; the CPU half
+  a port (and how it is checked); the pixel comparison and SwiftShader's edges; the GL half;
+  events and integers; a new instance on a Plugin switch; the page's clock; the Over's clips.
+- **Verified headlessly** (Chrome over `--remote-debugging-pipe`, console and Log events
+  collected): no console messages on Metal, under the page's own `_headers` CSP too (served
+  by a local server that applies it); the source and the Over render; Palette, Backdrop and
+  Passes change the picture; Wobble moved while paused redraws the held drawing and moving it
+  back is bit-identical; Audio in to silence goes to the beat; Hit spawns four doodles and is
+  released; Mix 0 gives the clip back; `?embed=1` renders the output alone; at 390 px wide
+  nothing scrolls sideways. Under SwiftShader on a machine at load average ~97 the first frame
+  took up to 14 s; on Metal, 1.6 s, then about 60 fps.
+- **Live** needs the proxied AAAA 100:: DNS record for `scrawl-demo` (`wrangler.toml` has a
+  ROUTE; the zone's custom domains are full), and `deploy.yml` the repo's
+  `CLOUDFLARE_API_TOKEN` secret and `CLOUDFLARE_ACCOUNT_ID` variable. The live page logs one
+  console error that is not the page's: the zone's injected challenge script, blocked by
+  `script-src 'self'`, as on every `*-demo` host.
+
 ## Not done
 
 - Never loaded into Resolume on macOS.
 - Windows: gated in Arena 7.27.1 on win-lab, 15 passed with audio skipped, but only five
   controls separated from the churn (above), and no sound has reached it there.
-- No browser demo, no OpenFX port, no presets.
+- No OpenFX port, no presets.
 - No lettering, no aura round the clip's subject (see the idea).

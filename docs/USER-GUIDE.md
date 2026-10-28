@@ -455,7 +455,7 @@ any control does nothing.
   design, and it's the obvious thing for v0.2.
 - **No outline of the subject.** The film draws a crackling aura round its characters; Scrawl draws
   in the air, not round anything in the clip.
-- **No OpenFX version, no presets and no browser demo.**
+- **No OpenFX version and no presets.**
 
 ---
 
@@ -469,6 +469,9 @@ your browser. In the effect, the **Over** group with Mix comes after it.
 
 - Project page: [stoatworks-labs.com/software/scrawl](https://stoatworks-labs.com/software/scrawl/)
 - Source: [github.com/stoatworks-labs/scrawl](https://github.com/stoatworks-labs/scrawl)
+- Browser demo: [scrawl-demo.stoatworks-labs.com](https://scrawl-demo.stoatworks-labs.com/). It runs
+  the plugin's own shaders over a port of its CPU half, and since a browser has no Resolume, it
+  listens to the test harness's synthetic band rather than your music. A demo, not the plugin.
 
 ## Reporting something
 
