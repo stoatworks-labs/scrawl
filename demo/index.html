@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Scrawl — browser demo | Stoatworks Labs</title>
+    <meta name="description" content="Try the Scrawl FFGL source and effect for Resolume in your browser: hand-drawn doodles to the music, redrawn twelve times a second by a hand that cannot hold still. The plugin's own GLSL, ported to WebGL2 unedited, drawing what a JavaScript port of its CPU half decides (the onset detectors, the score and the hand), which a check in its repository holds to the plugin's C++. The music is the plugin's test harness's synthetic band, not yours. A demo, not the plugin." />
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="./vendor/kit.css" />
+    <link rel="canonical" href="https://scrawl-demo.stoatworks-labs.com/" />
+  </head>
+  <body>
+    <main id="demo">
+      <noscript>
+        <p>
+          This demo runs the plugin's shaders and a port of its CPU half in your
+          browser, so it needs JavaScript and WebGL2. The plugin itself, its
+          source and its downloads are on
+          <a href="https://github.com/stoatworks-labs/scrawl">its repository</a>.
+        </p>
+      </noscript>
+    </main>
+
+    <script type="module" src="./plugin.js"></script>
+    <script
+      src="./vendor/support-footer.js"
+      defer
+      data-app="Scrawl"
+      data-repo="https://github.com/stoatworks-labs/scrawl"
+      data-note="A browser demo of the plugin's shaders over a port of its CPU half, fed a synthetic band rather than music. Nothing you load here leaves your machine."
+    ></script>
+  </body>
+</html>

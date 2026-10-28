@@ -74,6 +74,53 @@ step "Shaders"
 tools/glslc.sh || fail "a shader does not compile"
 
 #---------------------------------------------------------------------------
+step "Browser demo's shaders"
+#---------------------------------------------------------------------------
+# When a browser demo exists, demo/shaders.js carries copies of
+# source/Shaders.cpp. A copy that drifts still draws a plausible line, so the
+# drift has to fail here instead: rerun
+# `python3 demo/tools/check_shaders.py --write` after changing a shader.
+if [[ -f demo/tools/check_shaders.py ]]; then
+	log="$( mktemp )"
+	if python3 demo/tools/check_shaders.py >"$log" 2>&1; then
+		echo "   $( tail -1 "$log" )"
+	else
+		tail -14 "$log"
+		fail "the demo's shaders have drifted from source/Shaders.cpp"
+	fi
+	rm -f "$log"
+elif [[ -d demo ]]; then
+	fail "demo/ exists but demo/tools/check_shaders.py does not"
+else
+	echo "   skipped: no demo/"
+fi
+
+#---------------------------------------------------------------------------
+step "Browser demo's port of the CPU half"
+#---------------------------------------------------------------------------
+# demo/plugin.js decides in JavaScript what the plugin decides in C++: the
+# onsets (Audio.cpp), the transport, the score (Doodles.cpp), the hand
+# (Hand.cpp) and the clock (Scrawl.cpp), and it feeds the harness's synthetic
+# band. A port that drifts still draws plausible doodles, so
+# demo/tools/crosscheck/ drives the REAL plugin class without GL and the port
+# through one scenario, and the same doodles, onsets and segments must come out.
+# Needs node and a C++ compiler; about half a minute.
+if [[ -f demo/tools/crosscheck/crosscheck.sh ]]; then
+	if ! command -v node >/dev/null 2>&1; then
+		echo "   skipped: no node on this machine"
+	elif out=$( bash demo/tools/crosscheck/crosscheck.sh 2>&1 ); then
+		printf '%s\n' "$out" | sed 's/^/   /'
+	else
+		printf '%s\n' "$out" | tail -14
+		fail "the demo's port of the CPU half has drifted from the plugin's C++"
+	fi
+elif [[ -d demo ]]; then
+	fail "demo/ exists but demo/tools/crosscheck/crosscheck.sh does not"
+else
+	echo "   skipped: no demo/"
+fi
+
+#---------------------------------------------------------------------------
 step "Submodule"
 #---------------------------------------------------------------------------
 if [[ ! -f external/ffgl/CMakeLists.txt ]]; then
